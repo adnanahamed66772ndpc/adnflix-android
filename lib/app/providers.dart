@@ -79,8 +79,8 @@ class ConfigProvider with ChangeNotifier {
     notifyListeners();
     try {
       _config = await _repo.getConfig();
-    } catch (e) {
-      _error = e.toString();
+    } catch (_) {
+      _config = AppConfig(maintenanceMode: false, plans: [], paymentMethods: []);
     }
     _loading = false;
     notifyListeners();
@@ -236,14 +236,26 @@ class WatchlistProvider with ChangeNotifier {
 
   Future<void> toggle(String titleId) async {
     if (_authProvider?.isLoggedIn != true) return;
-    if (_ids.contains(titleId)) {
-      await _repo.removeFromWatchlist(titleId);
+    final wasInList = _ids.contains(titleId);
+    if (wasInList) {
       _ids.remove(titleId);
+      notifyListeners();
+      try {
+        await _repo.removeFromWatchlist(titleId);
+      } catch (_) {
+        _ids.add(titleId);
+        notifyListeners();
+      }
     } else {
-      await _repo.addToWatchlist(titleId);
       _ids.add(titleId);
+      notifyListeners();
+      try {
+        await _repo.addToWatchlist(titleId);
+      } catch (_) {
+        _ids.remove(titleId);
+        notifyListeners();
+      }
     }
-    notifyListeners();
   }
 }
 

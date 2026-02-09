@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/json_utils.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/browse/browse_screen.dart';
@@ -50,7 +51,7 @@ class AppRouter {
             episodeId: args['episodeId'] as String?,
             episodeName: args['episodeName'] as String?,
             titleName: args['titleName'] as String?,
-            isSeries: args['isSeries'] as bool? ?? false,
+            isSeries: fromJsonBool(args['isSeries']),
             startPositionSeconds: (args['startPositionSeconds'] as int?) ?? 0,
           ),
         );

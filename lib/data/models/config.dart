@@ -1,3 +1,5 @@
+import '../../core/json_utils.dart';
+
 class AppConfig {
   final bool maintenanceMode;
   final String? maintenanceMessage;
@@ -13,7 +15,7 @@ class AppConfig {
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     return AppConfig(
-      maintenanceMode: json['maintenanceMode'] as bool? ?? false,
+      maintenanceMode: fromJsonBool(json['maintenanceMode']),
       maintenanceMessage: json['maintenanceMessage'] as String?,
       plans: (json['plans'] as List<dynamic>?)
           ?.map((e) => Plan.fromJson(e as Map<String, dynamic>))

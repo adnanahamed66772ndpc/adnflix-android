@@ -69,7 +69,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _startProgressSaver();
       if (mounted) setState(() {});
     } catch (e) {
-      setState(() => _error = e.toString());
+      final msg = e.toString();
+      final isSourceError = msg.contains('Source error') ||
+          msg.contains('ExoPlaybackException') ||
+          msg.contains('VideoError');
+      if (mounted) {
+        setState(() => _error = isSourceError
+            ? 'Video could not be loaded. Please check your connection and try again.'
+            : msg);
+      }
     }
   }
 

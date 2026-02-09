@@ -30,40 +30,84 @@ class BrowseScreen extends StatelessWidget {
           ? Center(child: CircularProgressIndicator(color: netflixRed))
           : content.error != null && content.titles.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(content.error!, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      TextButton(
-                        onPressed: () => content.load(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_off, size: 64, color: Colors.white54),
+                        const SizedBox(height: 16),
+                        Text(
+                          content.error!,
+                          style: const TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        TextButton(
+                          onPressed: () => content.load(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   ),
                 )
-              : ListView(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  children: [
-                    ...content.categories.map((cat) {
-                      final list = content.titlesByCategory(cat.id);
-                      if (list.isEmpty) return const SizedBox.shrink();
-                      return HorizontalRail(
-                        title: cat.name,
-                        titles: list,
-                        progressMap: progressMap,
-                        onTitleTap: (t) => Navigator.of(context).pushNamed(
-                          AppRouter.titleDetails,
-                          arguments: {'titleId': t.id},
+              : !content.loading && content.titles.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.movie_outlined, size: 80, color: Colors.white54),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'No content yet',
+                              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Pull down to refresh or tap Retry.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            TextButton.icon(
+                              onPressed: () => content.load(),
+                              icon: const Icon(Icons.refresh, color: netflixRed),
+                              label: const Text('Retry', style: TextStyle(color: netflixRed)),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
-                    if (content.categories.isEmpty && content.titles.isNotEmpty) ...[
-                      SectionHeader(title: 'All'),
-                      _AllTitlesGrid(titles: content.titles),
-                    ],
-                  ],
-                ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => content.load(),
+                      color: netflixRed,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        children: [
+                          ...content.categories.map((cat) {
+                            final list = content.titlesByCategory(cat.id);
+                            if (list.isEmpty) return const SizedBox.shrink();
+                            return HorizontalRail(
+                              title: cat.name,
+                              titles: list,
+                              progressMap: progressMap,
+                              onTitleTap: (t) => Navigator.of(context).pushNamed(
+                                AppRouter.titleDetails,
+                                arguments: {'titleId': t.id},
+                              ),
+                            );
+                          }),
+                          if (content.titles.isNotEmpty) ...[
+                            SectionHeader(title: 'All'),
+                            _AllTitlesGrid(titles: content.titles),
+                          ],
+                        ],
+                      ),
+                    ),
     );
   }
 }

@@ -2,7 +2,8 @@
 class Constants {
   Constants._();
 
-  static const String apiBaseUrl = 'https://coliningram.site/api';
+  /// Backend API base (use https://api.coliningram.site/api or your API URL).
+  static const String apiBaseUrl = 'https://api.coliningram.site/api';
 
   static const String tokenKey = 'auth_token';
 

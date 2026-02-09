@@ -57,9 +57,14 @@ class ContentRepository {
   }
 
   /// Returns full video URL for streaming (supports Range for seeking).
+  /// Full URLs (e.g. external CDN) are loaded via API proxy to avoid source errors on Android.
   String videoUrl(String pathOrFilename) {
-    if (pathOrFilename.isEmpty) return '';
-    String filename = pathOrFilename
+    final raw = pathOrFilename.trim();
+    if (raw.isEmpty) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return '${Constants.apiBaseUrl}/videos/stream?url=${Uri.encodeComponent(raw)}';
+    }
+    String filename = raw
         .replaceFirst('/api/videos/', '')
         .replaceFirst('api/videos/', '');
     return _fullUrl('/videos/$filename');

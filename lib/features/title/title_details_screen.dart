@@ -70,7 +70,8 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
     }
 
     final title = _title!;
-    final contentRepo = context.read<ContentProvider>().contentRepo;
+    final content = context.read<ContentProvider>();
+    final contentRepo = content.contentRepo;
     final watchlist = context.watch<WatchlistProvider>();
     final inWatchlist = watchlist.isInWatchlist(title.id);
 
@@ -80,6 +81,29 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
             ? backdropUrl
             : 'https://coliningram.site$backdropUrl')
         : null;
+
+    final categoryNames = <String>[];
+    for (final id in title.categoryIds) {
+      for (final c in content.categories) {
+        if (c.id == id && c.name.isNotEmpty) {
+          categoryNames.add(c.name);
+          break;
+        }
+      }
+    }
+    final metaItems = <String>[];
+    if (title.releaseYear != null) metaItems.add(title.releaseYear.toString());
+    if (title.rating != null && title.rating! > 0) metaItems.add('${title.rating!.toStringAsFixed(1)} ★');
+    if (title.durationMinutes != null && title.durationMinutes! > 0) {
+      final m = title.durationMinutes!;
+      if (m >= 60) metaItems.add('${m ~/ 60}h ${m % 60}m');
+      else metaItems.add('${m}m');
+    }
+    if (title.maturity != null && title.maturity!.isNotEmpty) metaItems.add(title.maturity!);
+    if (title.isSeries && title.seasons != null && title.seasons!.isNotEmpty) {
+      final totalEps = title.seasons!.fold<int>(0, (s, se) => s + se.episodes.length);
+      metaItems.add('${title.seasons!.length} Season${title.seasons!.length == 1 ? '' : 's'} · $totalEps Episodes');
+    }
 
     return Scaffold(
       backgroundColor: netflixDark,
@@ -115,11 +139,22 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
                     title.name,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  if (title.releaseYear != null) ...[
-                    const SizedBox(height: 4),
+                  if (metaItems.isNotEmpty) ...[
+                    const SizedBox(height: 8),
                     Text(
-                      title.releaseYear.toString(),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      metaItems.join(' · '),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                    ),
+                  ],
+                  if (title.genres.isNotEmpty || categoryNames.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        ...title.genres.map((g) => _Chip(label: g)),
+                        ...categoryNames.map((n) => _Chip(label: n)),
+                      ],
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -146,18 +181,32 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
                       ),
                     ],
                   ),
-                  if (title.description != null && title.description!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
+                  if (title.description != null && title.description!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 24),
                     Text(
-                      title.description!,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      'Overview',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      title.description!.trim(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white70,
+                            height: 1.4,
+                          ),
                     ),
                   ],
                   if (title.isSeries && title.seasons != null && title.seasons!.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     Text(
                       'Seasons & Episodes',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                     ),
                     const SizedBox(height: 12),
                     ...title.seasons!.map((season) => _SeasonSection(
@@ -167,6 +216,7 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
                           contentRepo: contentRepo,
                         )),
                   ],
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -208,6 +258,27 @@ class _TitleDetailsScreenState extends State<TitleDetailsScreen> {
         },
       );
     }
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+      ),
+    );
   }
 }
 

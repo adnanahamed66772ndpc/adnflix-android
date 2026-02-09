@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../constants.dart';
 import 'token_storage.dart';
 
-/// Dio-based API client with auth interceptor.
+/// Dio-based API client with auth interceptor and 429 retry.
 class ApiClient {
   ApiClient({TokenStorage? tokenStorage})
       : _tokenStorage = tokenStorage ?? TokenStorage(),
@@ -24,6 +24,16 @@ class ApiClient {
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
           await _tokenStorage.clearToken();
+        }
+        // Retry once after delay when server returns 429 (Too Many Requests)
+        if (error.response?.statusCode == 429) {
+          await Future<void>.delayed(const Duration(seconds: 12));
+          try {
+            final response = await _dio.fetch<void>(error.requestOptions);
+            return handler.resolve(response);
+          } catch (_) {
+            // ignore second failure
+          }
         }
         return handler.next(error);
       },

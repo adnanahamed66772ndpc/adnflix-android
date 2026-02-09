@@ -25,14 +25,18 @@ class TransactionsRepository {
   Future<Transaction> createTransaction({
     required String planId,
     required String paymentMethod,
-    String? transactionId,
+    required String transactionId,
+    required num amount,
+    String? senderNumber,
   }) async {
     final res = await _api.post<Map<String, dynamic>>(
       '/transactions',
       data: {
         'planId': planId,
         'paymentMethod': paymentMethod,
-        if (transactionId != null && transactionId.isNotEmpty) 'transactionId': transactionId,
+        'transactionId': transactionId.trim(),
+        'amount': amount,
+        if (senderNumber != null && senderNumber.trim().isNotEmpty) 'senderNumber': senderNumber.trim(),
       },
     );
     final data = res.data;

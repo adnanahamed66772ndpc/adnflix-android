@@ -13,7 +13,15 @@ class WatchlistRepository {
       final data = res.data;
       if (data == null) return [];
       if (data is List) {
-        return data.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        return data
+            .map((e) {
+              if (e is Map) {
+                return (e['titleId'] ?? e['title_id'] ?? '').toString().trim();
+              }
+              return '';
+            })
+            .where((s) => s.isNotEmpty)
+            .toList();
       }
       if (data is Map && data['titleIds'] != null) {
         final list = data['titleIds'] as List<dynamic>? ?? [];

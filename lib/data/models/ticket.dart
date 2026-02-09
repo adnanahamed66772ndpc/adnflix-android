@@ -1,3 +1,5 @@
+import '../../core/json_utils.dart';
+
 class Ticket {
   final String id;
   final String subject;
@@ -49,7 +51,7 @@ class TicketReply {
     return TicketReply(
       id: json['id']?.toString() ?? '',
       message: json['message'] as String? ?? '',
-      isStaff: json['isStaff'] as bool? ?? false,
+      isStaff: fromJsonBool(json['isStaff']),
       createdAt: json['createdAt'] as String?,
     );
   }

@@ -1,3 +1,5 @@
+import '../../core/json_utils.dart';
+
 class TitleModel {
   final String id;
   final String name;
@@ -11,6 +13,9 @@ class TitleModel {
   final String? videoUrl; // for movies
   final int? releaseYear;
   final double? rating;
+  final int? durationMinutes;
+  final List<String> genres;
+  final String? maturity;
 
   TitleModel({
     required this.id,
@@ -25,17 +30,38 @@ class TitleModel {
     this.videoUrl,
     this.releaseYear,
     this.rating,
+    this.durationMinutes,
+    this.genres = const [],
+    this.maturity,
   });
 
   factory TitleModel.fromJson(Map<String, dynamic> json) {
+    final releaseYearRaw = json['releaseYear'] ?? json['year'];
+    final releaseYear = (releaseYearRaw is num)
+        ? (releaseYearRaw as num).toInt()
+        : (releaseYearRaw != null ? int.tryParse(releaseYearRaw.toString()) : null);
+
+    final durationRaw = json['duration'];
+    final durationMinutes = (durationRaw is num)
+        ? (durationRaw as num).toInt()
+        : (durationRaw != null ? int.tryParse(durationRaw.toString()) : null);
+
+    final genresList = json['genres'];
+    final genres = genresList is List
+        ? genresList
+            .map((e) => e is Map ? (e['name'] ?? e['id'] ?? e).toString() : e.toString())
+            .where((s) => s.isNotEmpty)
+            .toList()
+        : <String>[];
+
     return TitleModel(
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? json['title'] as String? ?? '',
-      description: json['description'] as String?,
+      description: json['description'] as String? ?? json['synopsis'] as String?,
       posterUrl: json['posterUrl'] as String? ?? json['poster'] as String?,
       backdropUrl: json['backdropUrl'] as String? ?? json['backdrop'] as String?,
       type: json['type'] as String? ?? 'movie',
-      premium: json['premium'] as bool? ?? false,
+      premium: fromJsonBool(json['premium']),
       categoryIds: (json['categoryIds'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -47,10 +73,11 @@ class TitleModel {
           ?.map((e) => Season.fromJson(e as Map<String, dynamic>))
           .toList(),
       videoUrl: json['videoUrl'] as String? ?? json['video'] as String?,
-      releaseYear: (json['releaseYear'] is num)
-          ? (json['releaseYear'] as num).toInt()
-          : null,
+      releaseYear: releaseYear,
       rating: (json['rating'] is num) ? (json['rating'] as num).toDouble() : null,
+      durationMinutes: durationMinutes,
+      genres: genres,
+      maturity: json['maturity'] as String?,
     );
   }
 

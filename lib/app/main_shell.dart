@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'theme.dart';
+import 'providers.dart';
 import '../features/browse/browse_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
@@ -31,6 +33,16 @@ class _MainShellState extends State<MainShell> {
     _currentIndex = widget.initialIndex;
   }
 
+  void _onTabTapped(int index) {
+    if (_currentIndex != index) {
+      setState(() => _currentIndex = index);
+      if (index == 0 || index == 1) {
+        final content = context.read<ContentProvider>();
+        if (content.titles.isEmpty && !content.loading) content.load();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,25 +71,25 @@ class _MainShellState extends State<MainShell> {
                   icon: Icons.home_rounded,
                   label: 'Home',
                   selected: _currentIndex == 0,
-                  onTap: () => setState(() => _currentIndex = 0),
+                  onTap: () => _onTabTapped(0),
                 ),
                 _NavItem(
                   icon: Icons.explore_rounded,
                   label: 'Browse',
                   selected: _currentIndex == 1,
-                  onTap: () => setState(() => _currentIndex = 1),
+                  onTap: () => _onTabTapped(1),
                 ),
                 _NavItem(
                   icon: Icons.bookmark_rounded,
                   label: 'Watchlist',
                   selected: _currentIndex == 2,
-                  onTap: () => setState(() => _currentIndex = 2),
+                  onTap: () => _onTabTapped(2),
                 ),
                 _NavItem(
                   icon: Icons.person_rounded,
                   label: 'Profile',
                   selected: _currentIndex == 3,
-                  onTap: () => setState(() => _currentIndex = 3),
+                  onTap: () => _onTabTapped(3),
                 ),
               ],
             ),

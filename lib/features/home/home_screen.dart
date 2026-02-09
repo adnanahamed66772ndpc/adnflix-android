@@ -46,16 +46,66 @@ class _HomeScreenState extends State<HomeScreen> {
       return Scaffold(
         backgroundColor: netflixDark,
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(content.error!, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => content.load(),
-                child: const Text('Retry'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cloud_off, size: 64, color: netflixGrey),
+                const SizedBox(height: 16),
+                Text(content.error!, textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => content.load(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!content.loading && content.titles.isEmpty) {
+      return Scaffold(
+        backgroundColor: netflixDark,
+        body: RefreshIndicator(
+          onRefresh: () => content.load(),
+          color: netflixRed,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height - 100,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.movie_outlined, size: 80, color: netflixGrey),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No content yet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pull down to refresh or check back later.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: netflixGrey),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      TextButton.icon(
+                        onPressed: () => content.load(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -69,8 +119,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: netflixDark,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await content.load();
+          if (auth.isLoggedIn) {
+            context.read<PlaybackProvider>().load();
+            context.read<WatchlistProvider>().load();
+          }
+        },
+        color: netflixRed,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           SliverAppBar(
             floating: true,
             backgroundColor: netflixDark,
@@ -117,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
+        ),
       ),
     );
   }

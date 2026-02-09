@@ -1,3 +1,5 @@
+import '../../core/json_utils.dart';
+
 class AdSettings {
   final bool enabled;
   final bool preRoll;
@@ -15,9 +17,9 @@ class AdSettings {
 
   factory AdSettings.fromJson(Map<String, dynamic> json) {
     return AdSettings(
-      enabled: json['enabled'] as bool? ?? false,
-      preRoll: json['pre_roll'] as bool? ?? json['preRoll'] as bool? ?? true,
-      midRoll: json['mid_roll'] as bool? ?? json['midRoll'] as bool? ?? false,
+      enabled: fromJsonBool(json['enabled']),
+      preRoll: fromJsonBool(json['pre_roll'] ?? json['preRoll'] ?? true),
+      midRoll: fromJsonBool(json['mid_roll'] ?? json['midRoll']),
       midRollIntervalSeconds:
           (json['mid_roll_interval'] is num)
               ? (json['mid_roll_interval'] as num).toInt()
