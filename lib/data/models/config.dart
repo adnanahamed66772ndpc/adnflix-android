@@ -49,16 +49,48 @@ class PaymentMethod {
   final String id;
   final String name;
   final String? number;
-  final String? instructions;
+  /// API format: list of strings. Optional for display.
+  final List<String>? instructions;
+  final String? logo;
+  final String? color;
 
-  PaymentMethod({required this.id, required this.name, this.number, this.instructions});
+  PaymentMethod({
+    required this.id,
+    required this.name,
+    this.number,
+    this.instructions,
+    this.logo,
+    this.color,
+  });
 
+  /// Parses API format: [{ "id", "name", "number", "logo", "color", "instructions": [] }]
   factory PaymentMethod.fromJson(Map<String, dynamic> json) {
+    Object? rawNumber = json['number'] ?? json['phone'] ?? json['accountNumber'] ??
+        json['sendMoneyNumber'] ?? json['paymentNumber'];
+    String? number;
+    if (rawNumber != null) {
+      if (rawNumber is String) number = rawNumber.trim();
+      if (rawNumber is num) number = rawNumber.toString();
+    }
+    if (number != null && number.isEmpty) number = null;
+
+    List<String>? instructions;
+    final raw = json['instructions'];
+    if (raw is List) {
+      instructions = raw
+          .map((e) => e is String ? e : e?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      if (instructions.isEmpty) instructions = null;
+    }
+
     return PaymentMethod(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      number: json['number'] as String?,
-      instructions: json['instructions'] as String?,
+      number: number,
+      instructions: instructions,
+      logo: json['logo'] as String?,
+      color: json['color'] as String?,
     );
   }
 }

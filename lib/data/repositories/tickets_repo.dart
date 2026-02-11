@@ -39,7 +39,7 @@ class TicketsRepository {
   }) async {
     final res = await _api.post<Map<String, dynamic>>(
       '/tickets',
-      data: {'subject': subject, 'message': message, 'priority': priority},
+      data: {'subject': subject, 'message': message, 'priority': priority, 'source': 'app'},
     );
     final data = res.data;
     if (data == null) throw Exception('Failed to create ticket');

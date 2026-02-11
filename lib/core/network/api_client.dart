@@ -4,6 +4,7 @@ import '../constants.dart';
 import 'token_storage.dart';
 
 /// Dio-based API client with auth interceptor and 429 retry.
+/// Server URL is fixed in Constants.apiBaseUrl (not user-editable).
 class ApiClient {
   ApiClient({TokenStorage? tokenStorage})
       : _tokenStorage = tokenStorage ?? TokenStorage(),

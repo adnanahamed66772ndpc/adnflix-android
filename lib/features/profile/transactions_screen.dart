@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../app/providers.dart';
+import '../../core/constants.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/config.dart';
 import '../../data/repositories/config_repo.dart';
@@ -48,10 +49,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       if (plans.isEmpty) {
         plans = await configRepo.getPlans();
       }
-      var paymentMethods = config.paymentMethods ?? [];
-      if (paymentMethods.isEmpty) {
-        paymentMethods = await configRepo.getPaymentMethods();
-      }
+      // Always load payment methods from API (GET /api/config/payment-methods) so numbers are from server.
+      var paymentMethods = await configRepo.getPaymentMethods();
+      if (paymentMethods.isEmpty) paymentMethods = config.paymentMethods ?? [];
 
       try {
         transactions = await txRepo.getTransactions();
@@ -67,6 +67,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _loading = false;
         _error = null;
       });
+      try {
+        await context.read<AuthProvider>().refreshUser();
+      } catch (_) {}
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -216,13 +219,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  void _showUpgradeSheet(BuildContext context) {
+  Future<void> _showUpgradeSheet(BuildContext context) async {
     if (_plans.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Plans not loaded')),
       );
       return;
     }
+    // Refresh payment methods so we use current Server URL and get latest numbers from API
+    try {
+      final list = await context.read<ConfigRepository>().getPaymentMethods();
+      if (mounted) setState(() => _paymentMethods = list);
+    } catch (_) {}
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: netflixDarkLighter,
@@ -285,16 +294,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
     if (method == null || !context.mounted) return;
 
-    PaymentMethod? selectedPm;
     final methodLower = method.toLowerCase();
-    for (final p in _paymentMethods) {
-      if (p.id.toLowerCase() == methodLower || p.name.toLowerCase() == methodLower) {
+
+    // Always fetch payment methods from API so number is from GET /api/config/payment-methods (Admin → Settings → Payment numbers).
+    List<PaymentMethod> freshList;
+    try {
+      freshList = await context.read<ConfigRepository>().getPaymentMethods();
+      if (mounted) setState(() => _paymentMethods = freshList);
+    } catch (_) {
+      freshList = _paymentMethods;
+    }
+
+    PaymentMethod? selectedPm;
+    for (final p in freshList) {
+      final idMatch = p.id.trim().isNotEmpty && p.id.toLowerCase() == methodLower;
+      final nameMatch = p.name.trim().toLowerCase() == methodLower;
+      if (idMatch || nameMatch) {
         selectedPm = p;
         break;
       }
     }
-    final sendMoneyNumber = selectedPm?.number?.trim();
+    final apiNumber = selectedPm?.number?.trim();
     final paymentMethodName = selectedPm?.name ?? method;
+    // Use number from API only; show placeholder if admin has not set it yet.
+    const placeholderNumber = '01XXXXXXXXX';
+    final sendMoneyNumber = (apiNumber != null && apiNumber.isNotEmpty) ? apiNumber : placeholderNumber;
+    final isPlaceholderNumber = sendMoneyNumber == placeholderNumber;
 
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -303,6 +328,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         amount: '${plan.price} ${plan.currency}',
         paymentMethodName: paymentMethodName,
         sendMoneyNumber: sendMoneyNumber,
+        isPlaceholderNumber: isPlaceholderNumber,
       ),
     );
     if (result == null || !context.mounted) return;
@@ -329,6 +355,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Request submitted. We will confirm soon.')),
         );
+        await context.read<AuthProvider>().refreshUser();
         _load();
       }
     } catch (_) {
@@ -346,13 +373,15 @@ class _PaymentFormDialog extends StatefulWidget {
     required this.planName,
     required this.amount,
     required this.paymentMethodName,
-    this.sendMoneyNumber,
+    required this.sendMoneyNumber,
+    this.isPlaceholderNumber = false,
   });
 
   final String planName;
   final String amount;
   final String paymentMethodName;
-  final String? sendMoneyNumber;
+  final String sendMoneyNumber;
+  final bool isPlaceholderNumber;
 
   @override
   State<_PaymentFormDialog> createState() => _PaymentFormDialogState();
@@ -389,45 +418,40 @@ class _PaymentFormDialogState extends State<_PaymentFormDialog> {
               style: const TextStyle(fontSize: 12, color: Colors.white70),
             ),
             const SizedBox(height: 4),
-            if (widget.sendMoneyNumber != null && widget.sendMoneyNumber!.isNotEmpty)
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: SelectableText(
-                        widget.sendMoneyNumber!,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SelectableText(
+                      widget.sendMoneyNumber,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: widget.sendMoneyNumber!));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Number copied'), duration: Duration(seconds: 2)),
-                      );
-                    },
-                    icon: const Icon(Icons.copy),
-                    tooltip: 'Copy',
-                  ),
-                ],
-              )
-            else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'Use the number shown in the app or contact support.',
-                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: widget.sendMoneyNumber));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Number copied'), duration: Duration(seconds: 2)),
+                    );
+                  },
+                  icon: const Icon(Icons.copy),
+                  tooltip: 'Copy',
+                ),
+              ],
+            ),
+            if (widget.isPlaceholderNumber)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Set payment numbers in website Admin → Settings → Payment numbers, then Save. Reopen this screen.',
+                  style: const TextStyle(fontSize: 11, color: Colors.white54),
                 ),
               ),
             const SizedBox(height: 16),

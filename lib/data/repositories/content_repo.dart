@@ -10,12 +10,6 @@ class ContentRepository {
 
   final ApiClient _api;
 
-  String _fullUrl(String path) {
-    if (path.startsWith('http')) return path;
-    final base = Constants.apiBaseUrl;
-    return path.startsWith('/') ? '$base$path' : '$base/$path';
-  }
-
   Future<List<Category>> getCategories() async {
     final res = await _api.get<List<dynamic>>('/categories');
     final list = res.data;
@@ -59,14 +53,29 @@ class ContentRepository {
   /// Returns full video URL for streaming (supports Range for seeking).
   /// Full URLs (e.g. external CDN) are loaded via API proxy to avoid source errors on Android.
   String videoUrl(String pathOrFilename) {
+    final base = Constants.apiBaseUrl;
     final raw = pathOrFilename.trim();
     if (raw.isEmpty) return '';
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      return '${Constants.apiBaseUrl}/videos/stream?url=${Uri.encodeComponent(raw)}';
+      return '$base/videos/stream?url=${Uri.encodeComponent(raw)}';
     }
     String filename = raw
         .replaceFirst('/api/videos/', '')
         .replaceFirst('api/videos/', '');
-    return _fullUrl('/videos/$filename');
+    final path = '/videos/$filename';
+    return path.startsWith('/') ? '$base$path' : '$base/$path';
+  }
+
+  /// Returns full URL for audio track (GET /api/videos/audio/:filename).
+  /// Use for multi-language audio tracks.
+  String audioUrl(String pathOrFilename) {
+    final base = Constants.apiBaseUrl;
+    final raw = pathOrFilename.trim();
+    if (raw.isEmpty) return '';
+    String filename = raw
+        .replaceFirst('/api/videos/audio/', '')
+        .replaceFirst('api/videos/audio/', '');
+    final path = '/videos/audio/$filename';
+    return path.startsWith('/') ? '$base$path' : '$base/$path';
   }
 }

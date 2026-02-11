@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../app/router.dart';
 import '../../app/providers.dart';
+import '../../core/constants.dart';
 import '../../data/models/user.dart';
 import 'transactions_screen.dart';
 import 'tickets_screen.dart';
@@ -33,14 +34,34 @@ class _ProfileBody extends StatelessWidget {
 
   final User user;
 
+  static String _planLabel(String plan) {
+    switch (plan) {
+      case 'premium': return 'Premium';
+      case 'with-ads': return 'With Ads';
+      default: return 'Free';
+    }
+  }
+
+  static String _expiryText(User user) {
+    if (user.subscriptionPlan == 'free') return '';
+    if (user.daysUntilExpiry != null) {
+      final d = user.daysUntilExpiry!;
+      if (d <= 0) return 'Expires soon';
+      if (d == 1) return 'Expires in 1 day';
+      return 'Expires in $d days';
+    }
+    if (user.subscriptionExpiresAt != null) {
+      final d = user.subscriptionExpiresAt!;
+      return 'Expires ${d.day}/${d.month}/${d.year}';
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final plan = user.subscriptionPlan;
-    final planLabel = plan == 'premium'
-        ? 'Premium'
-        : plan == 'with-ads'
-            ? 'With Ads'
-            : 'Free';
+    final planLabel = _planLabel(plan);
+    final expiryText = _expiryText(user);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -90,6 +111,16 @@ class _ProfileBody extends StatelessWidget {
                               ),
                         ),
                       ),
+                      if (expiryText.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          expiryText,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -144,6 +175,20 @@ class _ProfileBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Plans, payment numbers, Terms, Privacy & Support load from the same API as the website. Paid plans last 30 days, then auto-downgrade to Free.',
+                style: TextStyle(fontSize: 11, color: netflixGrey),
+              ),
+              const SizedBox(height: 4),
+              Text('App v${Constants.appVersion}', style: TextStyle(fontSize: 10, color: netflixGrey)),
+            ],
+          ),
+        ),
         ListTile(
           leading: Icon(Icons.logout, color: netflixRed),
           title: Text('Sign Out', style: TextStyle(color: netflixRed)),
@@ -199,11 +244,13 @@ class _MenuItem extends StatelessWidget {
   const _MenuItem({
     required this.icon,
     required this.title,
+    this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -211,6 +258,7 @@ class _MenuItem extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: netflixGrey),
       title: Text(title),
+      subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 11, color: Colors.white54)) : null,
       trailing: Icon(Icons.chevron_right, color: netflixGrey),
       onTap: onTap,
     );
